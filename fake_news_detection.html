@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Fake News Detection</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    min-height:100vh;
+    background:linear-gradient(135deg,#0f172a,#1e3a5f);
+    color:white;
+    padding:25px;
+}
+
+.container{
+    max-width:950px;
+    margin:auto;
+    background:rgba(255,255,255,.09);
+    padding:30px;
+    border-radius:20px;
+    box-shadow:0 15px 45px rgba(0,0,0,.4);
+}
+
+h1{
+    text-align:center;
+    font-size:34px;
+    margin-bottom:8px;
+}
+
+.subtitle{
+    text-align:center;
+    color:#cbd5e1;
+    margin-bottom:25px;
+}
+
+textarea{
+    width:100%;
+    height:200px;
+    padding:18px;
+    border:none;
+    outline:none;
+    border-radius:12px;
+    resize:vertical;
+    font-size:16px;
+    color:#111827;
+}
+
+.buttons{
+    display:flex;
+    gap:12px;
+    margin-top:15px;
+    flex-wrap:wrap;
+}
+
+button{
+    flex:1;
+    min-width:150px;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    color:white;
+    font-size:15px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:.85;
+    transform:translateY(-1px);
+}
+
+.voice{background:#f59e0b}
+.analyze{background:#10b981}
+.read{background:#3b82f6}
+.clear{background:#ef4444}
+
+.status{
+    text-align:center;
+    color:#fde047;
+    margin:15px 0;
+    min-height:22px;
+}
+
+.result{
+    display:none;
+    margin-top:25px;
+    padding:25px;
+    background:rgba(0,0,0,.25);
+    border-radius:15px;
+}
+
+.prediction{
+    text-align:center;
+    font-size:30px;
+    font-weight:bold;
+    margin-bottom:25px;
+}
+
+.real{color:#22c55e}
+.suspicious{color:#f59e0b}
+.fake{color:#ef4444}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:15px;
+}
+
+.card{
+    background:rgba(255,255,255,.08);
+    padding:18px;
+    border-radius:12px;
+}
+
+.card h3{
+    color:#93c5fd;
+    margin-bottom:8px;
+}
+
+.score{
+    margin-top:20px;
+}
+
+.score-title{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+}
+
+.bar{
+    width:100%;
+    height:22px;
+    background:#334155;
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.bar-fill{
+    width:0;
+    height:100%;
+    transition:1s;
+    background:#ef4444;
+}
+
+.explanation{
+    margin-top:20px;
+    background:rgba(255,255,255,.07);
+    padding:18px;
+    border-radius:12px;
+    line-height:1.7;
+}
+
+.explanation h3{
+    margin-bottom:10px;
+    color:#93c5fd;
+}
+
+ul{
+    padding-left:20px;
+}
+
+li{
+    margin:7px 0;
+}
+
+.footer{
+    text-align:center;
+    color:#94a3b8;
+    font-size:13px;
+    margin-top:25px;
+}
+
+@media(max-width:650px){
+    body{padding:12px}
+    .container{padding:20px}
+    .grid{grid-template-columns:1fr}
+    h1{font-size:26px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📰 AI Fake News Detection</h1>
+
+<p class="subtitle">
+Text + Speech Analysis using NLP
+</p>
+
+<textarea id="newsText"
+placeholder="Enter a news article here or click 'Speak News' and speak..."></textarea>
+
+<div class="buttons">
+
+<button class="voice" onclick="startSpeech()">
+🎤 Speak News
+</button>
+
+<button class="analyze" onclick="analyzeNews()">
+🔍 Analyze News
+</button>
+
+<button class="read" onclick="readResult()">
+🔊 Read Result
+</button>
+
+<button class="clear" onclick="clearAll()">
+🗑 Clear
+</button>
+
+</div>
+
+<div class="status" id="status"></div>
+
+<div class="result" id="result">
+
+<div id="prediction" class="prediction"></div>
+
+<div class="grid">
+
+<div class="card">
+<h3>📝 Word Count</h3>
+<p id="wordCount">0</p>
+</div>
+
+<div class="card">
+<h3>⚠️ Risk Level</h3>
+<p id="riskLevel">-</p>
+</div>
+
+<div class="card">
+<h3>🔎 Suspicion Score</h3>
+<p id="suspicionScore">0%</p>
+</div>
+
+<div class="card">
+<h3>📊 Fake Probability</h3>
+<p id="fakeScore">0%</p>
+</div>
+
+</div>
+
+<div class="score">
+
+<div class="score-title">
+<span>Fake News Probability</span>
+<strong id="scoreText">0%</strong>
+</div>
+
+<div class="bar">
+<div class="bar-fill" id="scoreBar"></div>
+</div>
+
+</div>
+
+<div class="explanation">
+
+<h3>🧠 Analysis Explanation</h3>
+
+<p id="explanation"></p>
+
+<br>
+
+<h3>🔍 Detected Signals</h3>
+
+<ul id="signals"></ul>
+
+</div>
+
+</div>
+
+<div class="footer">
+Educational AI/NLP Project
+</div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   SPEECH TO TEXT
+===================================================== */
+
+function startSpeech(){
+
+    const Recognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
+
+    if(!Recognition){
+
+        document.getElementById("status").innerText =
+        "❌ Speech recognition is not supported. Use Google Chrome.";
+
+        return;
+    }
+
+    const recognition = new Recognition();
+
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    document.getElementById("status").innerText =
+    "🎤 Listening... Speak now.";
+
+    recognition.start();
+
+    recognition.onresult = function(event){
+
+        const speech =
+        event.results[0][0].transcript;
+
+        document.getElementById("newsText").value =
+        speech;
+
+        document.getElementById("status").innerText =
+        "✅ Speech converted to text.";
+
+    };
+
+    recognition.onerror = function(event){
+
+        document.getElementById("status").innerText =
+        "❌ Microphone error: " + event.error;
+
+    };
+}
+
+
+/* =====================================================
+   ANALYZE NEWS
+===================================================== */
+
+function analyzeNews(){
+
+    const original =
+    document.getElementById("newsText").value.trim();
+
+    if(original.length < 20){
+
+        alert("Please enter a complete news story.");
+
+        return;
+    }
+
+    const text =
+    original.toLowerCase();
+
+    const words =
+    text.split(/\s+/).filter(w => w.length > 0);
+
+    let score = 0;
+
+    let signals = [];
+
+
+    /* =================================================
+       EXPLICIT FAKE NEWS
+    ================================================= */
+
+    const explicitFake = [
+
+        "fake news",
+        "example of fake news",
+        "this is fake",
+        "false news",
+        "false information",
+        "misinformation",
+        "disinformation",
+        "fabricated story",
+        "fabricated claim",
+        "false claim",
+        "unverified claim",
+        "unverified story",
+        "false story"
+
+    ];
+
+    explicitFake.forEach(x => {
+
+        if(text.includes(x)){
+
+            score += 45;
+
+            signals.push(
+            "The text explicitly identifies the information as fake or false."
+            );
+
+        }
+
+    });
+
+
+    /* =================================================
+       NO EVIDENCE
+    ================================================= */
+
+    const noEvidence = [
+
+        "no reliable scientific evidence",
+        "no scientific evidence",
+        "no reliable evidence",
+        "no evidence",
+        "there is no evidence",
+        "there is no reliable evidence",
+        "without scientific evidence",
+        "without reliable evidence",
+        "not supported by scientific evidence",
+        "not supported by reliable evidence",
+        "unsupported claim"
+
+    ];
+
+    noEvidence.forEach(x => {
+
+        if(text.includes(x)){
+
+            score += 35;
+
+            signals.push(
+            "Reliable scientific evidence is missing."
+            );
+
+        }
+
+    });
+
+
+    /* =================================================
+       NO OFFICIAL SOURCE
+    ================================================= */
+
+    const noSource = [
+
+        "no official announcement",
+        "no official source",
+        "no reliable source",
+        "no trusted source",
+        "not officially announced",
+        "not confirmed by officials",
+        "not confirmed by scientists"
+
+    ];
+
+    noSource.forEach(x => {
+
+        if(text.includes(x)){
+
+            score += 30;
+
+            signals.push(
+            "No reliable or official source supports the claim."
+            );
+
+        }
+
+    });
+
+
+    /* =================================================
+       EXTRAORDINARY SCIENTIFIC CLAIMS
+    ================================================= */
+
+    const extraordinary = [
+
+        "live for more than 200 years",
+        "live more than 200 years",
+        "live over 200 years",
+        "stop aging",
+        "stop ageing",
+        "reverse aging",
+        "reverse ageing",
+        "prevent all diseases",
+        "prevent almost all diseases",
+        "cure all diseases",
+        "cure every disease",
+        "live forever",
+        "make humans immortal",
+        "immortality",
+        "never age",
+        "eliminate aging"
+
+    ];
+
+    extraordinary.forEach(x => {
+
+        if(text.includes(x)){
+
+            score += 25;
+
+            signals.push(
+            "An extraordinary scientific or medical claim was detected."
+            );
+
+        }
+
+    });
+
+
+    /* =================================================
+       SOCIAL MEDIA SHARING
+    ================================================= */
+
+    const social = [
+
+        "quickly spreads across social media",
+        "spreads across social media",
+        "viral on social media",
+        "widely shared on social media",
+        "many people sharing",
+        "shared without checking",
+        "people sharing it without checking",
+        "spread rapidly online"
+
+    ];
+
+    social.forEach(x => {
+
+        if(text.includes(x)){
+
+            score += 12;
+
+            signals.push(
+            "Rapid social-media sharing without verification was detected."
+            );
+
+        }
+
+    });
+
+
+    /* =================================================
+       SOURCE VERIFICATION
+    ================================================= */
+
+    const verification = [
+
+        "without checking the source",
+        "without verifying the source",
+        "source has not been verified",
+        "not verified",
+        "cannot be verified",
+        "unverified",
+        "unknown source",
+        "no source"
+
+    ];
+
+    verification.forEach(x => {
+
+        if(text.includes(x)){
+
+            score += 20;
+
+            signals.push(
+            "The source has not been properly verified."
+            );
+
+        }
+
+    });
+
+
+    /* =================================================
+       SENSATIONAL LANGUAGE
+    ================================================= */
+
+    const sensational = [
+
+        "shocking",
+        "unbelievable",
+        "miracle",
+        "amazing",
+        "incredible",
+        "secret",
+        "astonishing",
+        "revolutionary",
+        "groundbreaking",
+        "breaking"
+
+    ];
+
+    let sensationalCount = 0;
+
+    sensational.forEach(x => {
+
+        if(text.includes(x))
+            sensationalCount++;
+
+    });
+
+    if(sensationalCount > 0){
+
+        score += Math.min(
+        15,
+        sensationalCount * 4
+        );
+
+        signals.push(
+        "Sensational language is used to attract attention."
+        );
+
+    }
+
+
+    /* =================================================
+       ABSOLUTE CLAIMS
+    ================================================= */
+
+    const absoluteClaims = [
+
+        "almost all diseases",
+        "all diseases",
+        "every disease",
+        "everyone",
+        "always",
+        "never",
+        "100% effective",
+        "guaranteed",
+        "completely eliminate"
+
+    ];
+
+    absoluteClaims.forEach(x => {
+
+        if(text.includes(x)){
+
+            score += 10;
+
+            signals.push(
+            "An unusually broad or absolute claim was detected."
+            );
+
+        }
+
+    });
+
+
+    /* =================================================
+       CONTRADICTION / LACK OF EVIDENCE
+    ================================================= */
+
+    if(
+
+        (
+            text.includes("however") ||
+            text.includes("but") ||
+            text.includes("although")
+        )
+
+        &&
+
+        (
+            text.includes("no evidence") ||
+            text.includes("no official") ||
+            text.includes("unverified")
+        )
+
+    ){
+
+        score += 20;
+
+        signals.push(
+        "The claim is directly followed by information showing a lack of verification."
+        );
+
+    }
+
+
+    /* =================================================
+       FINAL SCORE
+    ================================================= */
+
+    score =
+    Math.max(5, Math.min(98, score));
+
+
+    /* =================================================
+       CLASSIFICATION
+    ================================================= */
+
+    let result;
+    let className;
+    let risk;
+
+    if(score >= 70){
+
+        result =
+        "🚨 LIKELY FAKE NEWS";
+
+        className =
+        "prediction fake";
+
+        risk =
+        "HIGH";
+
+    }
+
+    else if(score >= 40){
+
+        result =
+        "⚠️ SUSPICIOUS / VERIFY";
+
+        className =
+        "prediction suspicious";
+
+        risk =
+        "MEDIUM";
+
+    }
+
+    else{
+
+        result =
+        "✅ LIKELY RELIABLE";
+
+        className =
+        "prediction real";
+
+        risk =
+        "LOW";
+
+    }
+
+
+    /* =================================================
+       DISPLAY RESULT
+    ================================================= */
+
+    document.getElementById("result").style.display =
+    "block";
+
+    document.getElementById("prediction").innerText =
+    result;
+
+    document.getElementById("prediction").className =
+    className;
+
+    document.getElementById("wordCount").innerText =
+    words.length;
+
+    document.getElementById("riskLevel").innerText =
+    risk;
+
+    document.getElementById("suspicionScore").innerText =
+    score + "%";
+
+    document.getElementById("fakeScore").innerText =
+    score + "%";
+
+    document.getElementById("scoreText").innerText =
+    score + "%";
+
+    document.getElementById("scoreBar").style.width =
+    score + "%";
+
+
+    /* =================================================
+       EXPLANATION
+    ================================================= */
+
+    let explanation;
+
+    if(score >= 70){
+
+        explanation =
+        "The story contains strong indicators of fake or misleading information. It includes unsupported or extraordinary claims, lack of reliable evidence or official confirmation, and/or an explicit indication that the story is fake.";
+
+    }
+
+    else if(score >= 40){
+
+        explanation =
+        "The story contains several suspicious characteristics. The information should be checked against independent and trustworthy sources before it is accepted or shared.";
+
+    }
+
+    else{
+
+        explanation =
+        "The story contains relatively few suspicious patterns. However, this result does not prove that the information is true.";
+
+    }
+
+    document.getElementById("explanation").innerText =
+    explanation;
+
+
+    /* =================================================
+       SIGNALS
+    ================================================= */
+
+    signals =
+    [...new Set(signals)];
+
+    const signalBox =
+    document.getElementById("signals");
+
+    signalBox.innerHTML = "";
+
+    if(signals.length === 0){
+
+        signalBox.innerHTML =
+        "<li>No major suspicious signals detected.</li>";
+
+    }
+
+    else{
+
+        signals.forEach(signal => {
+
+            const li =
+            document.createElement("li");
+
+            li.innerText =
+            signal;
+
+            signalBox.appendChild(li);
+
+        });
+
+    }
+
+
+    document.getElementById("status").innerText =
+    "✅ Analysis completed.";
+
+}
+
+
+/* =====================================================
+   TEXT TO SPEECH
+===================================================== */
+
+function readResult(){
+
+    const result =
+    document.getElementById("prediction").innerText;
+
+    const score =
+    document.getElementById("fakeScore").innerText;
+
+    if(!result){
+
+        alert("Please analyze the news first.");
+
+        return;
+    }
+
+    const speech =
+    new SpeechSynthesisUtterance(
+        result +
+        ". Fake news probability is " +
+        score
+    );
+
+    speech.lang = "en-IN";
+
+    speech.rate = .9;
+
+    window.speechSynthesis.cancel();
+
+    window.speechSynthesis.speak(speech);
+}
+
+
+/* =====================================================
+   CLEAR
+===================================================== */
+
+function clearAll(){
+
+    document.getElementById("newsText").value = "";
+
+    document.getElementById("result").style.display =
+    "none";
+
+    document.getElementById("status").innerText = "";
+
+    window.speechSynthesis.cancel();
+
+}
+
+</script>
+
+</body>
+</html>
